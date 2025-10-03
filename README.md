@@ -16,9 +16,8 @@ A tiny Spring Boot library that auto‑configures the AWS S3 SDK v2 and gives yo
 
 
 ## Installation
-Add the dependency to your application.
-
-Maven:
+Add the dependency to your `pom.xml`. Check that GitHub repository is available, 
+instructions [here](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-apache-maven-registry)
 
 ```xml
 <dependency>
@@ -29,7 +28,7 @@ Maven:
 ```
 
 ## Configuration
-Configure your AWS credentials, region, and bucket under the `s3m` prefix.
+Configure your AWS credentials, endpoint, and bucket under the `s3m` prefix.
 
 application.yml:
 
@@ -39,17 +38,18 @@ s3m:
   secretAccessKey: YOUR_SECRET_ACCESS_KEY
   s3:
     bucketName: your-bucket
-    region: eu-central-1
-    # Optional: prefix automatically applied by built‑in HTTP endpoints
-    endpointsPrefix: "/direct/"
-  # Optional: turn on built‑in endpoints
-  autoendpoint:
-    enabled: true
+    endpoint: https://minio.or.r2.endpoint
+    # Optional: region used for signing. Defaults to us-east-1 if omitted.
+    # For Cloudflare R2 use: auto
+    region: us-east-1
+  # Optional: turn on built‑in endpoints to upload and download files
+  autoendpoint: false # default is false
 ```
 
 Notes:
+- If you see "Unable to load region from any of the providers", set `s3m.s3.region` or rely on the default `us-east-1`.
+- For Cloudflare R2 set region to `auto`.
 - Startup validation: the auto‑configuration performs a `HeadBucket` call during startup. If the bucket is not accessible with the provided credentials/region, the application will fail to start with a clear error.
-- The property `s3m.s3.endpointsEnabled` is present but not used by the auto‑configuration; use `s3m.autoendpoint.enabled` to enable the built‑in HTTP controller.
 
 
 ## Getting started
@@ -71,39 +71,33 @@ public class MyUploadService {
   }
 
   public String createUploadUrl(String key) {
-    // URL valid for 5 minutes; do not force the endpoints prefix
+    // URL valid for 5 minutes;
     return s3m.generateUploadUrl(key, 5);
   }
 
   public String createDownloadUrl(String key) {
-    // URL valid for 10 minutes; force applying the configured prefix
-    return s3m.generateDownloadUrl(key, 10, true);
+    // URL valid for 10 minutes;
+    return s3m.generateDownloadUrl(key, 10);
   }
 }
 ```
 
 `S3MService` methods:
 - `generateUploadUrl(key, expireMinutes)`
-- `generateUploadUrl(key, expireMinutes, forcePrefix)`
 - `generateDownloadUrl(key, expireMinutes)`
-- `generateDownloadUrl(key, expireMinutes, forcePrefix)`
-
-If `forcePrefix` is true, the configured `s3m.s3.endpointsPrefix` (default `"/direct/"`) is applied to the key (e.g., `"/direct/myfile.png"`).
-
 
 ### 2) Built‑in HTTP endpoints (optional)
 Enable the controller by adding:
 
 ```yaml
 s3m:
-  autoendpoint:
-    enabled: true
+  autoendpoint: true
 ```
 
 Available endpoints under `/api/s3m`:
 
-- `GET /api/s3m/upload?key=myfile.png&expireMinutes=5`
-- `GET /api/s3m/download?key=myfile.png&expireMinutes=5`
+- `GET /api/s3m/upload?key=myfile.png&expireMinutes=1`
+- `GET /api/s3m/download?key=myfile.png&expireMinutes=1`
 
 Both return a simple JSON body:
 
@@ -123,23 +117,14 @@ curl "http://localhost:8080/api/s3m/upload?key=avatar.png&expireMinutes=5"
 Use the returned `url` to PUT the bytes directly to S3 from your client.
 
 
-## How it works (under the hood)
-- Auto‑configuration creates beans only if you haven’t defined your own.
-- It builds `S3Client` and `S3Presigner` with static credentials from `s3m.*` properties.
-- A startup check (`HeadBucket`) ensures your bucket is reachable early.
-- `S3MService` wraps the `S3Presigner` to create the URLs.
-
-
 ## Troubleshooting
 - Startup fails with `Unable to access S3 bucket`:
-  - Verify `s3m.s3.bucketName` and `s3m.s3.region`.
+  - Verify `s3m.s3.bucketName` and `s3m.s3.endpoint`.
   - Verify `s3m.accessKeyId` and `s3m.secretAccessKey` have permissions (e.g., `s3:PutObject`, `s3:GetObject`, `s3:ListBucket`).
   - Check for VPC endpoint or network restrictions affecting S3.
 - URL immediately expires or is rejected:
   - Ensure your server/client clocks are reasonably in sync.
   - Increase `expireMinutes`.
-
-
 
 ## License
 This library is released into the public domain under The Unlicense.

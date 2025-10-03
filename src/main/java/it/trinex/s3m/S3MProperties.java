@@ -11,12 +11,14 @@ import org.springframework.validation.annotation.Validated;
  *
  * <p>Example (application.yml):
  * s3m:
- *   accessKeyId: AKIA... 
+ *   accessKeyId: AKIA...
  *   secretAccessKey: ...
  *   s3:
  *     bucketName: my-bucket
- *     region: eu-central-1
- *     endpointsPrefix: /direct/
+ *     endpoint: https://minio.mycompany.local
+ *     # Optional: region used for signing; defaults to us-east-1. For Cloudflare R2, use "auto".
+ *     region: us-east-1
+ *   autoendpoint: false
  *
  * <p>Note: The built-in HTTP endpoints are controlled by
  * <code>s3m.autoendpoint.enabled</code>.
@@ -40,6 +42,8 @@ public class S3MProperties {
     @NotBlank
     private String secretAccessKey;
 
+    private boolean autoendpoint = false;
+
     private final S3 s3 = new S3();
 
     /**
@@ -56,26 +60,17 @@ public class S3MProperties {
         private String bucketName;
 
         /**
-         * AWS region where the bucket resides (for example, <code>eu-central-1</code>).
-         * Property: <code>s3m.s3.region</code>
+         * Custom S3-compatible endpoint, e.g. MinIO, Cloudflare R2, or AWS S3 URL.
+         * Property: <code>s3m.s3.endpoint</code>
          */
         @NotBlank
+        private String endpoint;
+
+        /**
+         * Optional region for request signing. If not set, defaults to <code>us-east-1</code>.
+         * For Cloudflare R2, set to <code>auto</code>.
+         * Property: <code>s3m.s3.region</code>
+         */
         private String region;
-
-        /**
-         * Deprecated: not used by the auto-configuration. Use
-         * <code>s3m.autoendpoint.enabled</code> to toggle the built-in HTTP controller instead.
-         * Property: <code>s3m.s3.endpointsEnabled</code>
-         * @deprecated Use <code>s3m.autoendpoint.enabled</code> to control the HTTP controller instead.
-         */
-        private boolean endpointsEnabled = false;
-
-        /**
-         * Prefix applied to object keys by the built-in HTTP endpoints.
-         * You can also apply it yourself when using S3MService directly.
-         * Property: <code>s3m.s3.endpointsPrefix</code>
-         * Default: <code>"/direct/"</code>
-         */
-        private String endpointsPrefix = "/direct/";
     }
 }

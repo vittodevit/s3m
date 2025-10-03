@@ -3,6 +3,7 @@ package it.trinex.s3m;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +13,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+
+import java.net.URI;
 
 /**
  * Spring Boot auto-configuration for the s3m library.
@@ -26,8 +29,9 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
  * - s3m.accessKeyId
  * - s3m.secretAccessKey
  * - s3m.s3.bucketName
- * - s3m.s3.region
- * - s3m.s3.endpointsPrefix (optional; default: "/direct/")
+ * - s3m.s3.endpoint
+ * - s3m.s3.region (optional; defaults to us-east-1)
+ * - s3m.autoendpoint
  *
  * <p>Startup validation: a HeadBucket call is executed to verify the configured
  * bucket can be accessed with the provided credentials and region. If the check fails
@@ -55,13 +59,15 @@ public class S3MAutoconfiguration {
     @Bean
     @ConditionalOnMissingBean
     public S3Client s3Client() {
-        String region = s3MProperties.getS3().getRegion();
         String accessKey = s3MProperties.getAccessKeyId();
         String secretKey = s3MProperties.getSecretAccessKey();
-
+        String endpoint = s3MProperties.getS3().getEndpoint();
+        String regionName = s3MProperties.getS3().getRegion();
+        Region region = (regionName == null || regionName.isBlank()) ? Region.US_EAST_1 : Region.of(regionName);
 
         S3Client client = S3Client.builder()
-            .region(Region.of(region))
+            .endpointOverride(URI.create(endpoint))
+            .region(region)
             .credentialsProvider(StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(accessKey, secretKey)))
             .build();
@@ -73,7 +79,8 @@ public class S3MAutoconfiguration {
                 .build();
             client.headBucket(head);
         } catch (Exception ex) {
-            throw new BeanCreationException("Unable to access S3 bucket '" + s3MProperties.getS3().getBucketName() + "': " + ex.getMessage(), ex);
+            throw new BeanCreationException(
+                "Unable to access S3 bucket '" + s3MProperties.getS3().getBucketName() + "': " + ex.getMessage(), ex);
         }
 
         return client;
@@ -87,13 +94,15 @@ public class S3MAutoconfiguration {
     @Bean
     @ConditionalOnMissingBean
     public S3Presigner s3Presigner() {
-        String region = s3MProperties.getS3().getRegion();
         String accessKey = s3MProperties.getAccessKeyId();
         String secretKey = s3MProperties.getSecretAccessKey();
-
+        String endpoint = s3MProperties.getS3().getEndpoint();
+        String regionName = s3MProperties.getS3().getRegion();
+        Region region = (regionName == null || regionName.isBlank()) ? Region.US_EAST_1 : Region.of(regionName);
 
         return S3Presigner.builder()
-            .region(Region.of(region))
+            .endpointOverride(URI.create(endpoint))
+            .region(region)
             .credentialsProvider(StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(accessKey, secretKey)))
             .build();
@@ -105,13 +114,26 @@ public class S3MAutoconfiguration {
      * URLs for uploads and downloads.
      *
      * @param presigner the S3Presigner bean
-     * @return S3MService configured with bucket and endpointsPrefix from properties
+     * @return S3MService configured with bucket from properties
      */
     @Bean
     @ConditionalOnMissingBean
     public S3MService autosignedS3Service(S3Presigner presigner) {
-        return new S3MService(presigner,
-            s3MProperties.getS3().getBucketName(),
-            s3MProperties.getS3().getEndpointsPrefix());
+        return new S3MService(
+            presigner,
+            s3MProperties.getS3().getBucketName()
+        );
+    }
+
+    /**
+     * Optionally expose the built-in REST controller when s3m.autoendpoint=true.
+     * This ensures the controller is registered even if the library package is not
+     * in the application's component scan base package.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "s3m", name = "autoendpoint", havingValue = "true")
+    public S3MController s3mController(S3MService service) {
+        return new S3MController(service);
     }
 }
