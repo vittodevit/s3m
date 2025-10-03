@@ -28,13 +28,6 @@ Maven:
 </dependency>
 ```
 
-Gradle (Kotlin DSL):
-
-```kotlin
-implementation("it.trinex:s3m:0.0.1-SNAPSHOT")
-```
-
-
 ## Configuration
 Configure your AWS credentials, region, and bucket under the `s3m` prefix.
 
