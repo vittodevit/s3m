@@ -10,7 +10,7 @@
     </parent>
     <groupId>it.trinex</groupId>
     <artifactId>s3m</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>s3m</name>
     <description>Simple pre-signed S3 URLs for Spring Boot</description>
     <url/>
@@ -22,10 +22,14 @@
         </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <name>Vittorio Lo Mele</name>
+            <email>hi@vitto.dev</email>
+            <url>https://vitto.dev</url>
+        </developer>
     </developers>
     <scm>
-        <connection/>
+        <connection>https://github.com/vittodevit/s3m/</connection>
         <developerConnection/>
         <tag/>
         <url/>
@@ -112,6 +116,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <skip>true</skip>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
