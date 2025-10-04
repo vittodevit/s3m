@@ -1,0 +1,55 @@
+name: Release - Publish to Sonatype Central
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish-central:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Set project version to release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: mvn -B versions:set -DnewVersion=${GITHUB_REF_NAME}
+
+      - name: Configure Maven settings for Sonatype Central
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'EOF'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${env.CENTRAL_USERNAME}</username>
+                <password>${env.CENTRAL_PASSWORD}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      - name: Build (attach sources/javadocs)
+        run: mvn -B -DskipTests package
+
+      - name: Publish to Sonatype Central
+        run: mvn -B -DskipTests org.sonatype.central:central-publishing-maven-plugin:0.5.0:publish
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+
+      - name: Show resulting version
+        run: mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec

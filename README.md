@@ -23,7 +23,7 @@ instructions [here](https://docs.github.com/en/packages/working-with-a-github-pa
 <dependency>
   <groupId>it.trinex</groupId>
   <artifactId>s3m</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.4</version>
 </dependency>
 ```
 

@@ -10,10 +10,10 @@
     </parent>
     <groupId>it.trinex</groupId>
     <artifactId>s3m</artifactId>
-    <version>0.0.3-SNAPSHOT</version>
+    <version>0.0.4</version>
     <name>s3m</name>
     <description>Simple pre-signed S3 URLs for Spring Boot</description>
-    <url/>
+    <url>https://github.com/vittodevit/s3m</url>
     <licenses>
         <license>
             <name>The Unlicense</name>
@@ -29,10 +29,10 @@
         </developer>
     </developers>
     <scm>
-        <connection>https://github.com/vittodevit/s3m/</connection>
-        <developerConnection/>
-        <tag/>
-        <url/>
+        <connection>scm:git:https://github.com/vittodevit/s3m.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/vittodevit/s3m.git</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/vittodevit/s3m</url>
     </scm>
     <properties>
         <java.version>25</java.version>
@@ -112,6 +112,7 @@
                     </execution>
                 </executions>
             </plugin>
+
 
             <plugin>
                 <groupId>org.springframework.boot</groupId>
