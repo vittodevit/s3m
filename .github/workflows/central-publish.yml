@@ -42,11 +42,8 @@ jobs:
           </settings>
           EOF
 
-      - name: Build (attach sources/javadocs)
-        run: mvn -B -DskipTests package
-
-      - name: Publish to Sonatype Central
-        run: mvn -B -DskipTests org.sonatype.central:central-publishing-maven-plugin:0.5.0:publish
+      - name: Package and Publish to Sonatype Central
+        run: mvn -B -DskipTests package org.sonatype.central:central-publishing-maven-plugin:0.5.0:publish
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
