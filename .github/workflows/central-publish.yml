@@ -42,11 +42,19 @@ jobs:
           </settings>
           EOF
 
-      - name: Package and Publish to Sonatype Central
-        run: mvn -B -DskipTests package org.sonatype.central:central-publishing-maven-plugin:0.5.0:publish
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode | gpg --batch --import
+
+      - name: Build and sign
+        run: mvn clean verify -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Package, Sign and Publish to Sonatype Central
+        run: mvn -B -DskipTests verify org.sonatype.central:central-publishing-maven-plugin:0.5.0:publish
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Show resulting version
         run: mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec
